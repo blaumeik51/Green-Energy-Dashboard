@@ -43,7 +43,8 @@ panel.set_position(lat, lon, 0)  # NYC latitude, longitude, altitude
 panel.set_datetime(dt.datetime(2019, 12, 25, 13, 15))  # Christmas Day!
 panel.power()
 
-y=0.415
+y=0.48
+#y=0.415
 x=0.03564904697110492
 dx=0.4181903129732449/244
 startHour=-9
@@ -60,8 +61,8 @@ ax421i = fig.add_axes([dx*(startHour+168), y, size, size], anchor='NE', zorder=1
 ax421j = fig.add_axes([dx*(startHour+192), y, size, size], anchor='NE', zorder=1) # weather symbol
 ax421k = fig.add_axes([dx*(startHour+216), y, size, size], anchor='NE', zorder=1) # weather symbol
 ax421l = fig.add_axes([dx*(startHour+240), y, size, size], anchor='NE', zorder=1) # weather symbol
+ax424 = fig.add_subplot(424)  # EE Value 48h
 ax422 = fig.add_subplot(422)  # Control
-ax424 = fig.add_subplot(424)  # Control
 ax425 = fig.add_subplot(425)
 ax425b = ax425.twinx()
 ax426 = fig.add_subplot(426)
@@ -260,8 +261,6 @@ utcnow = dt.datetime.utcnow()
 utcoffset = now.hour - utcnow.hour
 
 sun = Sun(lat, lon)  # initalize
-sunrise = sun.get_sunrise_time() + dt.timedelta(hours=utcoffset)
-sunset = sun.get_sunset_time() + dt.timedelta(hours=utcoffset)
 
 dataControl = pd.DataFrame()
 weatherData = pd.DataFrame()
@@ -377,7 +376,7 @@ while loop:
         # clean for past values
         stockData = stockData.drop(stockData[stockData.start_time < now - dt.timedelta(hours=1)].index).reset_index(
             drop=True)
-
+        
         # determine number of heating operation hours for the next 24h
         meanTemp = weatherData.loc[:24, 'temp'].mean()
 
@@ -467,8 +466,10 @@ while loop:
                 dataControl.loc[hour, 'compressor'] = True
                 dataControl.loc[hour, 'addHeating'] = True
                 dataControl.loc[hour, 'ventilation'] = False
-
-                # plot dashboard
+        sunrise = sun.get_sunrise_time() + dt.timedelta(hours=utcoffset)
+        sunset = sun.get_sunset_time() + dt.timedelta(hours=utcoffset)
+        
+        # plot dashboard
         # gererate axis label for for weather data    
         timeVecWeather = []
         timeVecWeatherLabel = []
@@ -491,7 +492,8 @@ while loop:
                 a = dataControl.loc[hour, 'startTime']
                 timeVecControl.append(hour)
                 if a.hour == 0:
-                    timeVecControlLabel.append(a.strftime('%d') + '.' + a.strftime('%m'))
+                    #timeVecControlLabel.append(a.strftime('%d') + '.' + a.strftime('%m'))
+                    timeVecControlLabel.append(a.strftime('%A'))
                 else:
                     timeVecControlLabel.append(a.strftime('%H'))
 
@@ -503,7 +505,8 @@ while loop:
                 a = energyData.loc[hour, 'startTime']
                 timeVecEnergy.append(hour)
                 if a.hour == 0:
-                    timeVecEnergyLabel.append(a.strftime('%d') + '.' + a.strftime('%m'))
+                    #timeVecEnergyLabel.append(a.strftime('%d') + '.' + a.strftime('%m'))
+                    timeVecEnergyLabel.append(a.strftime('%A'))
                 else:
                     timeVecEnergyLabel.append(a.strftime('%H'))
 
@@ -534,18 +537,18 @@ while loop:
         ax421a.set_xlim(column1, 470)
         ax421a.set_ylim(-400, 512)
         row1 = 480
-        row2 = 250
-        row3 = 150
-        row4 = 50
-        row5 = -50
-        row6 = -280
-        row7 = -380
+        row2 = 280
+        row3 = 180
+        row4 = 80
+        row5 = -20
+        row6 = -190
+        row7 = -290
         # ax421a.plot(range(0, 10), range(0, 10), color='black', alpha=1)
         try:
             ax421b.cla()
             ax421b.axis('off')
             # weather picture showing the most frequent occuring weather within the next 6 hours
-            if now.timestamp()>sunrise.timestamp() and now.timestamp()<sunset.timestamp(): #daytime
+            if now.time()>sunrise.time() and now.time()<sunset.time(): #daytime
                 path = os.path.join(os.getcwd(), 'wettericons',
                                 str(int(most_frequent(weatherData.loc[:5, 'condition_num'].to_list()))) + '.png')
             else: #night time
@@ -573,7 +576,7 @@ while loop:
             addWeatherPreview(ax421l,os,weatherData.loc[202:236, 'condition_num'])
         except:
             ''
-                
+            
         ax421a.grid(alpha=0.2)
         ax421a.text(column1, row1, 'Temperatur:', ha='left', va='center', color='white', fontsize=35)
         ax421a.text(column2, row1, str(weatherData.loc[0, 'temp']) + ' °C', ha='left', va='center', color='white',
@@ -620,37 +623,25 @@ while loop:
         color = []
         for i in range(0, len(weatherData['tempNum'])):
             color.append(COL.get_rgb(weatherData.loc[i, 'tempNum']))
-        # ax425.scatter(range(0, len(weatherData['tempNum'])), weatherData['tempNum'], c=weatherData['tempNum'], cmap='Spectral_r', norm=norm)
         ax425.bar(range(0, len(weatherData['tempNum'])), weatherData['tempNum'], color=color, alpha=0.6, width=1,
                   bottom=None)
         ax425.plot(range(0, len(weatherData['tempNum'])), weatherData['tempNum'],color='grey',linewidth=2)
-
-        # 425.fill_between(range(0, len(weatherData['tempNum'])), weatherData['tempNum'], alpha=0.5, cmap=cmap)
-#         if max(weatherData['tempNum']) < 30 and min(weatherData['tempNum']) > 0:
-#             ax425.set_ylim(0, 30)
-            
-        ax425.set_ylim(ax425.get_ylim()[0],abs(ax425.get_ylim()[1])+abs(abs(ax425.get_ylim()[1]))*0.4)
-        ax425.set_yticks(ax425.get_yticks()[(np.where(ax425.get_yticks()<max(weatherData['tempNum']) )[0].tolist())].tolist())
+        ax425.set_ylim(np.floor(min(weatherData['tempNum'])/5)*5,np.ceil(max(weatherData['tempNum'])/5)*5)
         ax425.grid(alpha=0.2)
         ax425.set_ylabel('Temperatur [°C]')
         ax425.set_xticks(timeVecWeather, minor=False)
         ax425.set_xticklabels(timeVecWeatherLabel, rotation=0, minor=False, horizontalalignment='left')
         ax425b.set_xticks(timeVecWeatherMinor, minor=True)
-        ax425b.bar(range(0, len(weatherData['prec_sum'])), weatherData['prec_sum'], width=3, bottom=None, align='edge',
-                   color='green')
+        ax425b.bar(range(0, len(weatherData['prec_sum'])), weatherData['prec_sum'], width=1, bottom=None, align='edge',
+                   color='green',alpha=0.6)
         ax425b.set_ylabel('Regen [mm]', color='green')
         ax425b.set_xlim(0, len(weatherData['tempNum']))
-        ax425b.set_title('Vorhersage Temperatur', ha='center')
+        #ax425b.set_title('Vorhersage Temperatur', ha='center')
         ax425b.set_xticks(timeVecWeather, minor=False)
         ax425b.set_xticklabels(timeVecWeatherLabel, rotation=0, minor=False, horizontalalignment='left')
         ax425b.set_xticks(timeVecWeatherMinor, minor=True)
-        if max(weatherData['prec_sum']) < 5:
-            lim = 5
-            ax425b.set_ylim(0, lim)
-        else:
-            lim = max(weatherData['prec_sum'])
-        ax425b.set_ylim(ax425b.get_ylim()[0],abs(ax425b.get_ylim()[1])+abs(abs(ax425b.get_ylim()[1]))*0.4)
-        ax425b.set_yticks(ax425b.get_yticks()[(np.where(ax425b.get_yticks()<lim )[0].tolist())].tolist())
+        ax425b.set_ylim(np.floor(min(weatherData['prec_sum'])/5)*5,np.ceil(max(weatherData['prec_sum'])/5)*5)
+
 
         # wind and clouds
         ax427.cla()
@@ -658,7 +649,7 @@ while loop:
         ax427.fill_between(range(0, len(weatherData['sun_prop'])), weatherData['sun_prop'], alpha=0.3,
                            color='yellow')
         #ax425.bar(range(0, len(weatherData['tempNum'])), weatherData['tempNum'], color=color, alpha=0.6, width=1,bottom=None)
-        ax427.set_title('Vorhersage Sonneschein und Wind', ha='center')
+        #ax427.set_title('Vorhersage Sonneschein und Wind', ha='center')
         ax427.set_ylabel('Sonneschein [%]', color='yellow', alpha=0.7)
         ax427.set_xlim(0, len(weatherData['wind_speed']))
         ax427.set_ylim(0, 100)
@@ -683,12 +674,15 @@ while loop:
         ax422.cla()
         ax422.plot(range(0, 10), range(0, 10), color='black')
 
-        ax422.text(0, 8, 'CO' '$_{2}$' + ' Emmissionen: ', ha='left', va='center', color='white', fontsize=20)
-        ax422.text(6, 8, str(energyData.loc[0, 'co2_g_standard']) + ' g/kWh', ha='left', va='center', color='white',
+        ax422.text(0, 9, 'CO' '$_{2}$' + ' Emmissionen: ', ha='left', va='center', color='white', fontsize=20)
+        ax422.text(6, 9, str(energyData.loc[0, 'co2_g_standard']) + ' g/kWh', ha='left', va='center', color='white',
                    fontsize=20)
 
-        ax422.text(0, 3.5, 'Anteil erneuerbare Energien: ', ha='left', va='center', color='white', fontsize=20)
-        ax422.text(6, 3.5, str(energyData.loc[0, 'eevalue']) + ' %', ha='left', va='center', color='white', fontsize=20)
+        ax422.text(0, 6, 'Anteil erneuerbare Energien: ', ha='left', va='center', color='white', fontsize=20)
+        ax422.text(6, 6, str(energyData.loc[0, 'eevalue']) + ' %', ha='left', va='center', color='white', fontsize=20)
+        
+        ax422.text(0, 3, 'Marktpreis: ', ha='left', va='center', color='white', fontsize=20)
+        ax422.text(6, 3, str(int(stockData.loc[0, 'marketprice']*10)/100) + ' ct/kWh', ha='left', va='center', color='white', fontsize=20)
 
         ax422.axis('off')
 
@@ -696,12 +690,12 @@ while loop:
         ax424.cla()
         ax424.plot(range(0, len(dataControl)), np.divide(range(0, len(dataControl)), len(dataControl)) * 4,
                    color='black', alpha=0)
-        ax424.set_title('Gerätesteuerung', ha='center')
+        #ax424.set_title('Gerätesteuerung', ha='center', fontsize=15)
         ax424.set_xlim(-1, len(dataControl))
         ax424.set_xticks(timeVecControl, minor=False)
         ax424.set_xticklabels(timeVecControlLabel, rotation=0, horizontalalignment='center')
         ax424.set_xticks(range(0, len(dataControl)), minor=True)
-        ax424.set_xlabel('Uhrzeit')
+        #ax424.set_xlabel('Uhrzeit')
         ax424.set_ylim(-0.5, 4.5)
         ax424.grid(alpha=0.2)
         ax424.set_yticks(range(0, 5))
@@ -779,10 +773,10 @@ while loop:
         ax426.cla()
         ax426.bar(range(0, len(energyData)), energyData['eevalue'], width=0.8, bottom=None, align='edge',
                   color=eeValueColor, alpha=0.6)
-        ax426.set_title('Anteil erneuerbare Energien', ha='center')
+        #ax426.set_title('Anteil erneuerbare Energien', ha='center')
         ax426.grid(alpha=0.2)
-        ax426.set_ylabel('Anteil [%]')
-        ax426.set_xlabel('Uhrzeit')
+        ax426.set_ylabel('EE Anteil [%]')
+        #ax426.set_xlabel('Uhrzeit')
         ax426.set_xticks(timeVecEnergy, minor=False)
         ax426.set_xticklabels(timeVecEnergyLabel, rotation=0, horizontalalignment='center')
         ax426.set_xticks(range(0, len(energyData)), minor=True)
@@ -794,13 +788,14 @@ while loop:
         ax428.cla()
         ax428.bar(range(0, len(energyBasedonWeather)), energyBasedonWeather, color=energyColor, width=1, bottom=None, alpha=0.5)
         ax428.plot(range(0, len(energyBasedonWeather)), energyBasedonWeather,color='grey',linewidth=2)
-        ax428.set_title('Vorhersage Anteil erneuerbare Energien', ha='center')
+        #ax428.set_title('Vorhersage Anteil erneuerbare Energien', ha='center')
         ax428.grid(alpha=0.2)
-        ax428.set_ylabel('Anteil [%]')
+        ax428.set_ylabel(' EE Anteil [%]')
         ax428.set_xlim(0, len(energyBasedonWeather))
         ax428.set_ylim(0, 100)
         ax428.set_xticks(timeVecWeather, minor=False)
         ax428.set_xticklabels(timeVecWeatherLabel, rotation=0, horizontalalignment='left')
+        ax428.set_xticks(timeVecWeatherMinor, minor=True)
         initial = False
         fig.tight_layout()
 
